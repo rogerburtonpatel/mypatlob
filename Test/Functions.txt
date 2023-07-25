@@ -1,0 +1,9 @@
+def func1():
+    print("Func1")
+def func2(x):
+    func1():
+    sum = 0
+    for i in range(x):
+        sum += x
+    return sum
+func2(5)

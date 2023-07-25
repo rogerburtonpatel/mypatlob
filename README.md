@@ -1,3 +1,3 @@
-# mypatlob
+# MyPATLOB
 
 MATLAB??? Python??? ¯\\\_(ツ)\_/¯

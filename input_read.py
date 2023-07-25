@@ -12,9 +12,9 @@ class Block:
         self.content.append(newLine)
 
 def parse_file(file_name):
-    f = open(file_name)
-    text = f.read()
-    f.close()
+
+    with open(file_name) as f:
+        text = f.read()
     # Create a new Block that will serve as a sentinal node in our Tree
     rootBlock = Block(None, None, None);
     lines = text.split("\n")

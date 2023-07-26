@@ -79,8 +79,9 @@ def translate(file_name, hash_varnames = False, randomized_spacing = False, doc_
         # match expressions
         semicolon = True
 
+        # increment
         if increment_all:
-            num = re.compile(r"\d+(?P<dec>\.\d+)?", re.VERBOSE)
+            num = re.compile(r"-?\d+(?P<dec>\.\d+)?", re.VERBOSE)
             for num_match in num.finditer(newline):
                 start,end = num_match.span()
                 if num_match["dec"] != None:
@@ -196,5 +197,5 @@ def translate(file_name, hash_varnames = False, randomized_spacing = False, doc_
         f.write("\t"*(prev_depth-i-1)+"end\n")
     f.close()
 
-# translate("test.txt", hash_varnames=True, randomized_spacing=True, doc_except=False, end_of_universe=True, increment_all=True)
+translate("test.txt", hash_varnames=True, randomized_spacing=True, doc_except=False, end_of_universe=True, increment_all=True)
 

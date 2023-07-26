@@ -1,10 +1,12 @@
 import re
 from enum import Enum
+import random
+import string
 
 class Name(Enum):
     VAR = 1
     FUNC = 2
-
+    
 def computeIndentLevel(indentVar, line):
     """
     Inputs
@@ -40,7 +42,13 @@ def skip_end(line):
     trimmed_line = line.strip()
     return trimmed_line[:5] == "else:" or trimmed_line[:5] == "elif "
 
-def translate(file_name):
+def my_hash(input):
+    return ''.join(random.choices(string.ascii_uppercase + string.ascii_lowercase, k=random.randint(5,20)))
+
+def translate(file_name, hash_varnames = False, randomized_spacing = False, doc_except = False, end_of_universe = False, increment_all = False):
+    if random.random() < 1e-4:
+        raise Exception("End of Universe. GG.")
+    
     f = open(file_name)
     text = f.read()
     f.close()
@@ -63,26 +71,35 @@ def translate(file_name):
         my_depth = computeIndentLevel(indent_mode, line)
         gap = prev_depth - my_depth if not skip_end(line) else prev_depth - my_depth - 1
         if gap > 0:
-            for _ in range(gap):
-                f.write("end\n")
+            for i in range(gap):
+                f.write("\t"*(my_depth - i + 1) + "end\n")
         prev_depth = my_depth
 
 
         # match expressions
         semicolon = True
 
+        if increment_all:
+            num = re.compile(r"\d+(?P<dec>\.\d+)?", re.VERBOSE)
+            for num_match in num.finditer(newline):
+                start,end = num_match.span()
+                if num_match["dec"] != None:
+                    newline = f"{newline[:start]}{float(newline[start:end])+1}{newline[end:]}"
+                else:
+                    newline = f"{newline[:start]}{int(newline[start:end])+1}{newline[end:]}"
+
         # assignment
         assgn = re.compile(r"(?P<name>\w(\w|\_)*)\s*=", re.VERBOSE)
         assgn_match = assgn.search(newline)
-        if assgn_match != None:
-            my_name = assgn_match['name']
+        if assgn_match != None and assgn_match['name'] not in namespace:
+            my_name = assgn_match['name'] if not hash_varnames else my_hash(assgn_match['name'])
             namespace[assgn_match['name']] = (Name.VAR, my_name)
 
         # for
         forloop = re.compile(r"for\s+(?P<name>\w(\w|\_|\d)*)\s+in\s+(?P<iter>.*):", re.VERBOSE)
         forloop_match = forloop.search(newline)
         if forloop_match != None:
-            my_name = forloop_match['name']
+            my_name = forloop_match['name'] if not hash_varnames else my_hash(forloop_match['name'])
             namespace[forloop_match['name']] = (Name.VAR, my_name)
             newline = f"for {my_name} = {forloop_match['iter']}"
             semicolon = False
@@ -117,7 +134,7 @@ def translate(file_name):
         func = re.compile(r"def\s+(?P<name>\w(\w|\_|\d)*)\((?P<args>.*)\):", re.VERBOSE)
         func_match = func.search(newline)
         if func_match != None:
-            new_name = func_match['name']
+            new_name = func_match['name'] if not hash_varnames else my_hash(func_match['name'])
             namespace[func_match['name']] = (Name.FUNC, new_name)
             newline = f"function {new_name}({func_match['args']})"
             semicolon = False
@@ -136,10 +153,11 @@ def translate(file_name):
         # indexing arr[1] (and + 1 to index)
         index = re.compile(r"(\w|\_|\d)\[(?P<ind>.+?)\]", re.VERBOSE)
         for index_match in index.finditer(newline):
-            newline = newline.replace("[" + index_match['ind'] + "]",  "(" + index_match['ind'] + " + 1)")
+            adder = " + 1" if not increment_all else ""
+            newline = newline.replace("[" + index_match['ind'] + "]",  "(" + index_match['ind'] + adder + ")")
 
         # f.write -> disp
-        disp = re.compile(r"f.write(ln)?\((?P<str>.*)\)", re.VERBOSE)
+        disp = re.compile(r"print(ln)?\((?P<str>.*)\)", re.VERBOSE)
         disp_match = disp.search(newline)
         if disp_match != None:
             newline = f"disp({disp_match['str']})"
@@ -152,15 +170,31 @@ def translate(file_name):
         newline = newline.replace("!=", "~=")
 
         # comments
+        if doc_except and "#" in newline:
+            raise Exception("Documentation Exception: real programmers don't document things")
         newline = newline.replace("#", "%")
+
+        # replace variable names
+        if hash_varnames:
+            for name in namespace:
+                namere = re.compile(r"([^\w\_\d]|^)"+name+r"([^\w\_\d]|$)", re.VERBOSE)
+                for name_match in namere.finditer(newline):
+                    start,end = name_match.span()
+                    newline = f"{newline[:start]}{newline[start:end].replace(name, namespace[name][1])}{newline[end:]}"
 
         if semicolon:
             newline = newline + ";"
-        f.write(newline+"\n")
 
-    for _ in range(prev_depth):
-        f.write("end\n")
+        if randomized_spacing:
+            space = " "*int(random.random()*20)
+            f.write(space)
+        else:
+            f.write("\t"*prev_depth)
+        f.write(newline.strip()+"\n")
+
+    for i in range(prev_depth):
+        f.write("\t"*(prev_depth-i-1)+"end\n")
     f.close()
 
-translate("test.txt")
+# translate("test.txt", hash_varnames=True, randomized_spacing=True, doc_except=False, end_of_universe=True, increment_all=True)
 
